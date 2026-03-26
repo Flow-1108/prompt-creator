@@ -50,6 +50,11 @@ prompt-creator/
 ### 0. Choix de l'IA cible
 Toute première question, toujours : **"Ce prompt est pour Claude, Gemini ou GPT ?"** Ce choix détermine la structure, les patterns et les conventions utilisées pour la génération.
 
+### 0.5. Recommandation de skills *(Claude + Claude Code uniquement)*
+Après avoir compris l'objectif, le skill analyse la tâche et la compare à un catalogue de 24 skills Claude Code. Si un skill existant correspond, il le **signale** et continue la création du prompt en l'**optimisant pour ce skill** — les deux sont complémentaires, pas alternatifs. Si aucun skill ne correspond, cette phase est silencieuse.
+
+> Exemple : l'utilisateur veut traiter des PDFs → le skill signale `pdf` et génère un prompt calibré pour l'utiliser efficacement.
+
 ### 1. Phase de collecte
 Le skill pose des questions **une par une**, dans un ordre logique, sans jargon technique. Il couvre au minimum :
 
