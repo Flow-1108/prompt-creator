@@ -31,11 +31,11 @@ Once the target AI is known, this choice governs the entire generation process: 
 
 **This phase applies only when:** the target AI is Claude AND the destination appears to be Claude Code (not claude.ai).
 
-After learning the user's objective (first question of Phase 1), scan the task description against the catalog of known Claude Code skills below. If one or more skills closely match the user's need, mention them **before continuing** with prompt creation:
+After learning the user's objective (first question of Phase 1), scan the task description against the catalog of known Claude Code skills below. If one or more skills closely match the user's need, mention them **as context** and continue prompt creation — a skill still needs a well-crafted prompt to work effectively:
 
-> "Avant de créer ce prompt, je veux te signaler qu'il existe un skill Claude Code conçu exactement pour ça — **[skill-name]**. Il pourrait déjà faire ce que tu cherches sans avoir besoin d'un prompt personnalisé. Tu veux qu'on l'utilise, ou tu préfères quand même créer un prompt sur mesure ?"
+> "Je vois qu'il existe un skill Claude Code pour ça — **[skill-name]**. Je vais créer un prompt optimisé pour travailler avec ce skill."
 
-If the user wants to use the skill directly, stop and redirect them. If they prefer a custom prompt, continue with Phase 1.
+Then tailor the generated prompt accordingly: use the skill's expected inputs, leverage its specific capabilities, and phrase instructions in a way that activates the skill's strengths. Skills and prompts are complementary, not alternatives — always continue to Phase 1.
 
 ### Known skill catalog
 
