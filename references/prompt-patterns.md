@@ -1,6 +1,53 @@
-# Prompt Patterns Reference
+# Prompt Patterns Reference — Claude
 
-This file contains reusable structural patterns for generating high-quality Claude prompts. Referenced by the prompt-creator skill during generation.
+This file contains reusable structural patterns for generating high-quality Claude prompts. Referenced by the prompt-creator skill during generation. It is the Claude counterpart to `gemini-guide.md` and `gpt-guide.md`.
+
+**Last verified: September 2026.** Model names and API behaviors below reflect Anthropic documentation as of 2026-09-12. Anthropic ships models frequently — re-verify before pinning a model name or claiming an API parameter errors.
+
+---
+
+## Model landscape (verified September 2026)
+
+| Model | API ID | Positioning |
+|---|---|---|
+| Claude Fable 5.1 | `claude-fable-5-1` | Most capable widely released model — demanding reasoning, long-horizon agentic work |
+| Claude Opus 5 | `claude-opus-5` | Flagship general-purpose tier |
+| Claude Sonnet 5 | `claude-sonnet-5` | Balanced everyday tier |
+| Claude Haiku 4.5 | `claude-haiku-4-5` | Fastest, cheapest — subagents, high-volume work |
+
+Opus 4.8 / 4.7 / 4.6 and Sonnet 4.6 remain served as the previous generation. Current models carry a 1M token context (Haiku 4.5: 200K) and support up to 128K output tokens.
+
+---
+
+## API-level behavior that changes how you write the prompt
+
+Claude's prompting conventions shifted with the 4.6+ generation. These are the changes that most often make an older prompt wrong rather than merely verbose:
+
+| Area | Current behavior |
+|---|---|
+| **Thinking** | `thinking: {type: "adaptive"}` — the model decides when and how deeply to think. On Claude Fable 5.1 thinking is always on. The fixed `budget_tokens` concept is gone: it returns a 400 on Fable 5/5.1, Opus 5/4.8/4.7 and Sonnet 5. Haiku 4.5 still uses `budget_tokens`. |
+| **Effort** | `output_config: {effort: ...}` with `low` / `medium` / `high` / `xhigh` / `max` controls reasoning depth and token spend. This is the dial to reach for instead of prose about thoroughness. |
+| **Sampling** | `temperature`, `top_p`, `top_k` are removed on Fable 5/5.1, Opus 5/4.8/4.7 and Sonnet 5 — they return a 400. Do not write prompts or integration code that set them. |
+| **Structured output** | `output_config: {format: {...}}`. The older `output_format` parameter is deprecated. |
+| **Assistant prefill** | Removed — a trailing assistant turn returns a 400 on current models. Use structured outputs or a system-prompt format instruction instead. |
+
+**The practical consequence for prompt writing:** depth, length and rigor are now set by *configuration*, and the prompt carries *context and intent*. A prompt that spends its words instructing Claude to be thorough, to plan, or to reason step by step is spending them on behavior the model already has — and, on current models, over-prescription measurably degrades output quality.
+
+---
+
+## Dated patterns — do not generate these for current Claude models
+
+These were correct for earlier Claude generations and are now counterproductive:
+
+| Dated pattern | What to do instead |
+|---|---|
+| `<thinking>` / `<answer>` scaffolds, "think step by step", `<scratchpad>` blocks | Adaptive thinking plus `effort`. On Claude Fable 5.1, instructing the model to reproduce its reasoning can trigger a refusal (reasoning extraction). |
+| "Be thorough. Do not be lazy. Do not stop early." | Delete — current models are proactive by default. |
+| `CRITICAL:` / `You MUST` / `NEVER EVER` stacked across a prompt | State the one or two real constraints plainly, with their reason. When everything is critical, nothing is. |
+| `STEP 1: … STEP 2: …` choreography for judgment tasks | State the outcome, the constraints, and how to verify. Keep numbered steps only where order genuinely matters. |
+| Numeric output ceilings ("at most 150 words", "exactly 5 bullets") | Qualitative guidance tied to audience and purpose. Hard caps starve reasoning on difficult problems. |
+| Long prohibition lists | Describe success. A prohibition against a failure the model wasn't going to make can anchor it toward that failure. |
+| Assistant prefill + stop sequences + "output ONLY valid JSON" + retry-on-parse | Structured outputs (`output_config.format`). |
 
 ---
 
@@ -54,9 +101,11 @@ When handling [specific scenario], do the following:
 
 ---
 
-## Pattern 2 — Analytical / reasoning prompt (with chain of thought)
+## Pattern 2 — Analytical / reasoning prompt
 
 Use this when the task involves analysis, classification, decision-making, or multi-step reasoning.
+
+**Do not write a chain-of-thought scaffold.** On current Claude models, reasoning depth is set with adaptive thinking plus `output_config.effort`, not with prompt text. The prompt's job is to state the task, the criteria that should drive the judgment, and how to verify the result — then get out of the way.
 
 ```xml
 <role>
@@ -68,32 +117,39 @@ You are a [role] specializing in [domain].
 </context>
 
 <instructions>
-For each request, follow this process:
+[The analytical task, stated directly.]
 
-1. Read the input carefully.
-2. In a <thinking> block, work through your reasoning step by step:
-   - Identify the key elements of the input.
-   - Consider relevant factors or criteria.
-   - Weigh alternatives if applicable.
-   - Arrive at your conclusion.
-3. In an <answer> block, provide your final response in the format specified below.
+Base your judgment on these criteria:
+- [Criterion 1 — what makes an answer right here]
+- [Criterion 2]
+- [Criterion 3]
 
-Your thinking should be thorough but efficient. Focus on the reasoning that actually influences your conclusion.
+Where the input is ambiguous or information is missing, say so explicitly rather than filling the gap with an assumption.
 </instructions>
 
-<examples>
-<example>
-<input>[Example input]</input>
-<thinking>[Step-by-step reasoning demonstration]</thinking>
-<answer>[Final structured answer]</answer>
-</example>
-</examples>
-
 <output_format>
-Always respond with a <thinking> block followed by an <answer> block.
-[Specify the format of the answer block]
+[Specify the structure of the answer]
 </output_format>
 ```
+
+Set `effort` to match the difficulty: `low` for routine classification, `high` for genuine analysis, `max` when correctness matters more than cost. Read the reasoning through the API's thinking blocks if you need to inspect it.
+
+### Legacy variant — visible reasoning as a deliverable
+
+Ask for reasoning *in the output* only when the trace itself is the product — an auditable rationale a human must review, a teaching artifact, or a destination that surfaces no thinking blocks. Even then, name it for what it is rather than dressing it as a thinking aid:
+
+```xml
+<instructions>
+[The analytical task]
+
+Structure your response in two parts:
+
+**Rationale** — the criteria that drove your conclusion and how you weighed them, in a few sentences.
+**Conclusion** — [the required format].
+</instructions>
+```
+
+Avoid `<thinking>` and `<answer>` tag names here: on Claude Fable 5.1, instructing the model to reproduce its internal reasoning can trigger a refusal.
 
 ---
 
@@ -203,6 +259,8 @@ When including examples in a prompt:
 - **Show the exact output format** — don't describe it, demonstrate it.
 - **Keep examples representative** — they should cover the range of likely inputs, not just the easy cases.
 - **Order examples** from simple to complex.
+- **Vary them deliberately.** Examples are the strongest signal in a prompt — Claude matches their length, tone and structure. A single gold output freezes that exact shape into every response.
+- **Skip examples for judgment the model already owns.** Keep them where they pin a genuinely format-sensitive output shape; drop them where they only demonstrate competence.
 
 ---
 
@@ -218,8 +276,8 @@ When including examples in a prompt:
 | `<example>` | Single example wrapper |
 | `<input>` | Example input within an example |
 | `<output>` | Example ideal output within an example |
-| `<thinking>` | Chain-of-thought reasoning block |
-| `<answer>` | Final answer after reasoning |
+| ~~`<thinking>`~~ | **Retired** — reasoning depth is set by adaptive thinking + `effort`, not by tags. Can trigger a refusal on Claude Fable 5.1 |
+| ~~`<answer>`~~ | **Retired** — no longer needed once no thinking block precedes it |
 | `<output_format>` | Description of expected output structure |
 | `<document>` | Long-form content to process |
 | `<categories>` | Classification categories |
