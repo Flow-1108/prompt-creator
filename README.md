@@ -1,100 +1,199 @@
-# Prompt Creator — Skill Claude
+# Prompt Creator — Claude Skill (v4)
 
-Un skill Claude Code qui guide l'utilisateur pas à pas pour créer des prompts optimisés, quelle que soit la tâche.
+A Claude Code skill that walks you through creating optimized prompts for **Claude**, **Gemini**, or **GPT**, whatever the task.
 
----
+*Documentation en français : [README.fr.md](./README.fr.md)*
 
-## Ce que fait ce skill
-
-Quand il se déclenche, le skill engage une **conversation naturelle** pour collecter le contexte nécessaire, puis génère **un seul prompt final** — sans explication, sans commentaire, prêt à copier-coller.
-
-Le prompt généré s'adapte automatiquement selon la destination choisie :
-- **Conversation claude.ai** → style naturel, conversationnel, longueur modérée
-- **System prompt API** → structure exhaustive, balises XML, couverture des cas limites
+> **Content verified September 2026.** Model names and API parameters move fast across all three providers. Each reference file carries its own verification date — if it is more than a couple of months old, re-check before relying on a specific model name.
 
 ---
 
-## Phrases qui déclenchent le skill
+## What this skill does
 
-- "crée-moi un prompt"
-- "écris un system prompt"
-- "améliore mon prompt"
-- "génère des instructions pour Claude"
-- "aide-moi à écrire un prompt pour…"
-- "j'ai besoin d'un bon prompt pour…"
-- *(et équivalents en anglais)*
+When triggered, the skill **first asks which AI the prompt is for** (Claude, Gemini, or GPT), then runs a natural conversation to gather context, and produces **a single final prompt** — no explanation, no commentary, ready to copy and paste.
+
+The generated prompt adapts to:
+- **The target AI**: Claude (Anthropic best practices), Gemini (Google's PTCF framework), or GPT (CTCO framework)
+- **The destination**: a conversation UI (claude.ai / AI Studio / ChatGPT) or an API system prompt
 
 ---
 
-## Structure du dossier
+## The principle behind v4
+
+All three providers have converged on the same architecture: **reasoning depth is now a parameter, not prompt text.**
+
+| Provider | Depth control |
+|---|---|
+| Anthropic | `thinking: {type: "adaptive"}` + `output_config.effort` (`low` → `max`) |
+| OpenAI | `reasoning_effort` (`none` → `max`) |
+| Google | `thinking_level` (`low` / `medium` / `high`) |
+
+What follows from that:
+
+- **No chain-of-thought scaffolding.** "Think step by step", `<thinking>` tags, and planning choreography duplicate reasoning the model already does internally, and can make output **worse**.
+- **No sampling parameters.** Claude's frontier models reject `temperature`/`top_p`/`top_k`; Gemini 3+ instructs developers to remove them from generation configs.
+- **Structured output is a first-class API feature** on all three. Prompt-level JSON scaffolding (prefill, stop sequences, "output ONLY valid JSON", retry-on-parse) is obsolete.
+- **Instruction-following became literal.** Inflated emphasis over-triggers, and leftover hedges ("try to", "if possible") read as permission to under-deliver.
+
+The prompt's job is now to carry **context and intent** — audience, product, quality bar, constraints, and the reasons behind them. That is what only the author knows.
+
+---
+
+## Current models (verified September 2026)
+
+| Provider | Models |
+|---|---|
+| **Anthropic** | Claude Fable 5.1 (`claude-fable-5-1`), Opus 5 (`claude-opus-5`), Sonnet 5 (`claude-sonnet-5`), Haiku 4.5 (`claude-haiku-4-5`) |
+| **OpenAI** | GPT-6 Astra (`gpt-6-astra`), GPT-5.6 Sol / Terra / Luna (`gpt-5.6-sol` / `-terra` / `-luna`) |
+| **Google** | Gemini 3.8 / 3.7 / 3.6 / 3.5 Flash, 3.5 Flash-Lite, 3.1 Pro (preview) |
+
+`o3` is no longer in OpenAI's catalog. The meaningful distinction is no longer *which model reasons* but *at what effort level*.
+
+---
+
+## Phrases that trigger the skill
+
+- "create a prompt for me"
+- "write a system prompt"
+- "improve my prompt"
+- "generate instructions for Claude / Gemini / GPT"
+- "help me write a prompt for…"
+- "I need a good prompt for…"
+- "prompt for my app"
+- "system prompt for Gemini"
+- "prompt for ChatGPT"
+- *(and French equivalents)*
+
+---
+
+## Folder structure
 
 ```
 prompt-creator/
-├── SKILL.md                        # Fichier principal du skill
-├── README.md                       # Cette documentation
+├── SKILL.md                        # Main skill file (v4)
+├── README.md                       # This documentation (English)
+├── README.fr.md                    # French documentation
 └── references/
-    └── prompt-patterns.md          # 5 structures de prompts réutilisables
+    ├── prompt-patterns.md          # Claude guide: models, patterns, dated patterns
+    ├── gemini-guide.md             # Gemini guide: PTCF, thinking_level, patterns
+    └── gpt-guide.md                # GPT guide: CTCO, reasoning_effort, agents
 ```
 
 ---
 
-## Comment ça marche
+## How it works
 
-### 1. Phase de collecte
-Le skill pose des questions **une par une**, dans un ordre logique, sans jargon technique. Il couvre au minimum :
+### 0. Target AI selection
+Always the very first question: **"Is this prompt for Claude, Gemini, or GPT?"** That choice governs the structure, patterns, and conventions used for generation.
 
-| Question | Pourquoi |
-|----------|----------|
-| Objectif principal | Savoir ce que le prompt doit accomplir |
-| Rôle / persona de Claude | Calibrer le ton et l'expertise |
-| Audience cible | Adapter le niveau et le registre |
-| Ton souhaité | Formel, pédagogique, conversationnel… |
-| Destination | claude.ai ou system prompt API |
-| Contraintes | Ce qu'il faut éviter absolument |
-| Exemples d'entrée/sortie | Pour les tâches avec format précis |
-| Format de sortie | Liste, JSON, texte libre, tableau… |
+### 0.5. Skill recommendation *(Claude + Claude Code only)*
+After learning the objective, the skill checks whether an available Claude Code skill covers the task. **It reads the skill list from the current session** rather than a hardcoded catalog — the installed set differs per machine, per marketplace, and per user, and grows with every release. If it finds a match, it **mentions it** and continues building the prompt, **optimized for that skill** — the two are complementary, not alternatives. Otherwise this phase stays silent.
 
-### 2. Phase de clarification
-Le skill continue de poser des questions tant qu'il détecte des **ambiguïtés ou des informations manquantes**. Il décide lui-même quand il a assez de contexte — l'utilisateur n'a pas besoin de dire "c'est bon".
+> Example: the user wants to process PDFs → the skill mentions the `pdf` skill if available, and generates a prompt calibrated to use it effectively.
 
-### 3. Génération du prompt
-Une fois le contexte suffisant, le skill produit le prompt final en appliquant les **best practices Anthropic** :
+### 1. Context gathering
+The skill asks questions **one at a time**, in a logical order, without technical jargon. It covers at minimum:
 
-- Balises XML sémantiques : `<role>`, `<context>`, `<instructions>`, `<examples>`, `<output_format>`
-- Exemples few-shot (3 à 5) pour les tâches avec format ou ton précis
-- Invitation au Chain of Thought (`<thinking>` / `<answer>`) pour les tâches analytiques
-- Documents longs placés en haut du prompt
-- Ton calme et direct — jamais de `MAJUSCULES ABUSIVES`, jamais de "NE FAIS JAMAIS"
+| Question | Why |
+|----------|-----|
+| Target AI | Pick the right best practices (Claude / Gemini / GPT) |
+| Objective | Know what the prompt must accomplish |
+| Role / persona | Calibrate tone and expertise |
+| Audience | Adapt level and register |
+| Tone | Formal, pedagogical, conversational… |
+| Destination | Conversation UI or API system prompt |
+| Constraints | What must be avoided |
+| Input/output examples | For tasks with a precise format |
+| Output format | List, JSON, free text, table… |
+| Multimodal inputs *(Gemini/GPT)* | Images, video, audio to process? |
+| Long context *(Gemini/GPT)* | Large documents in context? |
+| Agent behavior | Autonomous tool-using agent, or standard assistant? |
+| Reasoning depth | Complex analysis or fast execution? Maps to a parameter on all three providers |
+| Specific model *(API, only if it changes something)* | A cheaper tier may need more explicit scaffolding than a flagship |
+
+### 2. Clarification
+The skill keeps asking while it detects **ambiguity or missing information**. It decides for itself when it has enough context.
+
+### 3. Prompt generation
+Once context is sufficient, the skill produces the final prompt applying the **target AI's best practices**:
+
+**For Claude (Anthropic):**
+- Semantic XML tags: `<role>`, `<context>`, `<instructions>`, `<examples>`, `<output_format>`
+- Few-shot examples (3-5), deliberately varied — Claude matches their length, tone, and structure
+- **No reasoning scaffold**: depth comes from `effort`, not `<thinking>` tags. On Claude Fable 5.1, instructing the model to reproduce its reasoning can trigger a refusal
+- Long documents at the top of the prompt
+- Calm, direct tone — no `SHOUTING IN CAPS`
+- No prefill or prompt-level JSON scaffolding: `output_config.format` handles it
+
+**For Gemini (Google):**
+- PTCF framework: Persona · Task · Context · Format
+- Few-shot examples as a first-line quality lever (strong Google recommendation)
+- **`thinking_level`** (`low` / `medium` / `high`) instead of planning instructions. `minimal` returns an error
+- **No sampling parameters**: `temperature`, `top_p`, `top_k`, and `candidate_count` must be removed on Gemini 3+
+- Positive constraints (broad negatives disrupt Gemini)
+- Consistent delimiters: XML *or* Markdown, never mixed
+- Native multimodal support, context up to 1M tokens
+
+**For GPT (OpenAI):**
+- CTCO framework: Context → Task → Constraints → Output
+- Constraints separated from the task (reduces instruction drift)
+- 3 agent instructions: Persistence + Scope/completion + Tool usage
+- Negative instructions always paired with a positive alternative
+- `reasoning_effort`: `none`/`low` for extraction and formatting, `medium` as default, `high`/`xhigh`/`max` for hard problems
+- Structured Outputs: token-level JSON constraint via `response_format`
+- Prompt caching: static content at the top, dynamic at the bottom
+- GPT-6 Astra specifics: bias it toward action when intent is clear, ask explicitly for prose (it defaults to lists), scope test thoroughness on code tasks
 
 ---
 
-## Principes d'ingénierie de prompts appliqués
+## Prompt engineering principles applied
 
-Ce skill s'appuie sur les recommandations officielles d'Anthropic :
+### Common to all three
+- **Component structure** — clear sections with XML tags
+- **Few-shot examples** — 3-5 for tasks with an expected format
+- **Calibrated tone** — direct language, positive constraints, emphasis earned rather than default
+- **Depth in configuration** — never "think step by step" in the prompt text
+- **Say it once** — leaner prompts measurably outperform padded ones
 
-**Structure en composants**
-Chaque prompt généré est découpé en sections claires avec des balises XML, ce qui améliore la compréhension de Claude et la cohérence des réponses.
+### Claude-specific
+- **Adaptive thinking + `effort`** instead of reasoning tags
+- Rich context and explicit behaviors; no step-by-step choreography for judgment tasks
 
-**Few-shot examples**
-Pour les tâches avec un format attendu (résumés, emails, fiches produit…), 3 à 5 exemples entrée/sortie sont intégrés directement dans le prompt.
+### Gemini-specific
+- **PTCF framework** (Google's recommended structure)
+- **`thinking_level`** instead of explicit planning
+- **Concision** — Gemini 3 follows instructions well without over-specification
+- **No sampling parameters** — `temperature` should be absent, not tuned
+- **Native multimodal** — specific questions about media, not "analyze this"
 
-**Chain of Thought**
-Pour les tâches analytiques, multi-étapes ou impliquant une décision, le prompt invite Claude à raisonner dans une balise `<thinking>` avant de répondre dans `<answer>`.
+### GPT-specific
+- **CTCO framework** — a reliable convention aligned with OpenAI's docs (see caveat below)
+- **Isolated constraints** — dedicated section, separate from the task
+- **3 agent instructions** — persistence, scope/completion, tool usage
+- **No explicit CoT** — every current flagship reasons internally
+- **Caching** — static instructions at the top, variable content at the bottom
+- **Double placement** — instructions before AND after long documents
 
-**Ton calibré**
-Langage direct et bienveillant. Aucune majuscule agressive, aucune formulation alarmiste. Les contraintes sont exprimées positivement.
+---
+
+## Unverified claims
+
+Two statements are explicitly flagged as unconfirmed in the reference files:
+
+- **CTCO** is a widely used community convention consistent with OpenAI's documented advice, but it was not found as a named framework in OpenAI's own documentation (checked 2026-09-12). Earlier versions of this skill presented it as "OpenAI's Official Structure".
+- **GPT-6 Astra's `reasoning_effort` range** differs between two official OpenAI pages (`low`/`medium`/`high` on one, up to `max` on the other). Both agree `none` is unsupported.
 
 ---
 
 ## Installation
 
-Place le dossier du skill dans ton répertoire de plugins Claude Code :
+Place the skill folder in your Claude Code plugins directory:
 
 ```
-~/.claude/plugins/<ton-plugin>/skills/prompt-creator/
+~/.claude/plugins/<your-plugin>/skills/prompt-creator/
 ```
 
-Ou directement dans :
+Or directly in:
 
 ```
 ~/.claude/skills/prompt-creator/
@@ -102,28 +201,39 @@ Ou directement dans :
 
 ---
 
-## Compatibilité
+## Compatibility
 
-| Environnement | Supporté |
-|---------------|----------|
-| claude.ai | Oui |
-| Claude Code | Oui |
-| API (system prompt) | Oui — le skill peut générer des prompts pour cette cible |
-
----
-
-## Fichiers de référence
-
-Le fichier [`references/prompt-patterns.md`](./references/prompt-patterns.md) contient 5 structures de prompts réutilisables :
-
-1. **Tâche analytique** — avec Chain of Thought
-2. **Transformation de contenu** — résumé, réécriture, traduction
-3. **Génération créative** — avec exemples few-shot
-4. **Classification / extraction** — sorties structurées JSON
-5. **Assistant conversationnel** — system prompt API complet
+| Environment | Supported |
+|-------------|-----------|
+| claude.ai | Yes |
+| Claude Code | Yes |
+| API (system prompt) | Yes — the skill can generate prompts for this target |
 
 ---
 
-## Auteur
+## Reference files
 
-Créé avec [Claude Code](https://claude.ai/code) · [Flow-1108](https://github.com/Flow-1108)
+**[`references/prompt-patterns.md`](./references/prompt-patterns.md)** — Claude guide:
+1. Model landscape and the API behaviors that change how you write prompts
+2. Dated patterns to stop generating
+3. 5 prompt structures (standard task, analytical, document processing, conversational, classification)
+4. XML tag conventions
+
+**[`references/gemini-guide.md`](./references/gemini-guide.md)** — Gemini guide:
+1. Model landscape and Gemini 3+ generation config
+2. PTCF framework and template
+3. 6 prompt patterns (standard, analytical, documents, conversational, multimodal, JSON)
+4. Best practices, pitfalls, XML tag conventions
+
+**[`references/gpt-guide.md`](./references/gpt-guide.md)** — GPT/OpenAI guide:
+1. Model landscape and `reasoning_effort` levels
+2. GPT-6 Astra behavioral notes
+3. CTCO framework and template
+4. 6 prompt patterns (standard, reasoning, agent, long documents, conversational, JSON)
+5. Best practices, pitfalls, XML conventions
+
+---
+
+## Author
+
+Built with [Claude Code](https://claude.ai/code) · [Flow-1108](https://github.com/Flow-1108)

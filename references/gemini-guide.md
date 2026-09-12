@@ -1,10 +1,49 @@
 # Gemini Prompt Engineering Guide
 
-Reference file for the prompt-creator skill. Contains Gemini-specific patterns, best practices, and structural templates based on official Google documentation (ai.google.dev, Vertex AI, March 2026).
+Reference file for the prompt-creator skill. Contains Gemini-specific patterns, best practices, and structural templates based on official Google documentation (ai.google.dev, Vertex AI).
+
+**Last verified: September 2026.** Model names and API parameters below were checked against `ai.google.dev/gemini-api/docs/models` and `ai.google.dev/gemini-api/docs/latest-model` on 2026-09-12. Google ships Gemini revisions frequently — re-verify this section before trusting a specific model name or parameter.
 
 ---
 
-## The PTCF Framework — Google's Official Structure
+## Model landscape (verified September 2026)
+
+| Model | API ID | Positioning |
+|---|---|---|
+| Gemini 3.8 Flash | `gemini-3.8-flash` | Latest and most capable Flash model — long-horizon software engineering, autonomous agents, complex enterprise workflows |
+| Gemini 3.7 Flash | `gemini-3.7-flash` | Complex coding and agentic workflows |
+| Gemini 3.6 Flash | `gemini-3.6-flash` | General tasks, balances speed and multimodal capability |
+| Gemini 3.5 Flash | `gemini-3.5-flash` | Routine, high-throughput workloads |
+| Gemini 3.5 Flash-Lite | `gemini-3.5-flash-lite` | Fast, cost-effective execution; high-volume subagents |
+| Gemini 3.1 Pro | `gemini-3.1-pro-preview` | Preview — advanced problem-solving and agentic capabilities |
+
+Gemini 2.0 models are shut down; Gemini 2.5 (`gemini-2.5-pro`, `gemini-2.5-flash`, `gemini-2.5-flash-lite`) is the previous generation. Gemini 3.8 Flash: 1M token context, 64K max output.
+
+Specialized models exist for transcription (`gemini-3.5-transcribe`), image generation (Nano Banana family), video (Veo 3.1), music (Lyria 3.5), and embeddings — consult the live docs when a prompt targets one of these rather than assuming the text-model conventions apply.
+
+---
+
+## Generation config — what changed in Gemini 3+
+
+This is the most common source of stale Gemini prompts and integration code:
+
+| Parameter | Status on Gemini 3+ |
+|---|---|
+| `temperature`, `top_p`, `top_k` | **Remove them.** Google's migration guidance instructs developers to drop these from generation configs on Gemini 3+. Advice to "keep temperature at 1.0" is obsolete — the parameter should be absent, not set. |
+| `candidate_count` | Unsupported on Gemini 3+ — remove. |
+| `thinking_budget` | Deprecated — replaced by the `thinking_level` string enum. |
+| `thinking_level` | `low` / `medium` (default) / `high`. `minimal` is **not** supported and returns an error. |
+
+**`thinking_level` guidance:**
+- `low` — latency-critical work: real-time chat, drafts, fast data analysis, incident response pipelines.
+- `medium` (default) — best quality for most tasks; recommended for complex code and agentic use cases.
+- `high` — deep reasoning, mathematics, difficult multi-step tasks, heavy tool orchestration.
+
+Depth is now controlled by **configuration, not prose**. When a prompt targets a thinking-capable Gemini model, prefer raising `thinking_level` over adding "think carefully step by step" instructions to the prompt text.
+
+---
+
+## The PTCF Framework — Google's recommended structure
 
 Every Gemini prompt should follow the **Persona · Task · Context · Format** order.
 
@@ -76,7 +115,11 @@ Output: [Third example output]
 
 ## Pattern 2 — Analytical / reasoning prompt (with planning)
 
-For Gemini, do NOT use `<thinking>` / `<answer>` tags. Instead, use explicit planning instructions.
+For Gemini, do NOT use `<thinking>` / `<answer>` tags.
+
+**On thinking-capable models (Gemini 3+), reach for `thinking_level` first.** Set `thinking_level: "high"` and state the task and its verification criteria plainly — the model plans internally. Prompted planning scripts duplicate work the model already does and can make output worse.
+
+Use the explicit planning template below when the prompt targets a non-thinking model, when the user needs the plan itself to appear in the output (an auditable deliverable, not a reasoning aid), or when `thinking_level` is not available in the destination surface.
 
 ```xml
 <role>
@@ -262,8 +305,9 @@ Output:
 | **Few-shot first** | Google recommends examples as the primary quality lever — include 3-5 |
 | **Concise instructions** | Gemini 3 follows instructions well — don't over-specify |
 | **Positive constraints** | Avoid broad negatives ("don't guess"). Say "use only the provided context" |
-| **Temperature** | Keep at default 1.0 for Gemini 3 — don't adjust |
-| **Planning over thinking tags** | Use explicit step-by-step planning, not `<thinking>` blocks |
+| **Sampling parameters** | Remove `temperature`, `top_p`, `top_k`, `candidate_count` on Gemini 3+ — they are not to be set |
+| **Reasoning depth** | Control with `thinking_level` (`low`/`medium`/`high`), not with prose. `minimal` errors |
+| **Consistent delimiters** | Pick XML *or* Markdown headers and stay with it — mixing formats blurs section boundaries |
 | **Partial completion** | Start a structure (e.g., "I. Introduction\n*") and Gemini will continue the pattern |
 | **Multimodal** | Ask specific questions about media, request clear output formats |
 | **Long context** | Place documents at top, instructions below. Ask targeted questions |
@@ -276,8 +320,11 @@ Output:
 1. **Over-specifying for Gemini 3** — Prompts that were necessary for Gemini 2.x may be verbose overkill for Gemini 3. Start simple, add detail only if quality drops.
 2. **Broad negative instructions** — "Never infer", "Don't guess" can cause Gemini to over-index and fail basic reasoning. Reframe positively.
 3. **Missing few-shot examples** — Google explicitly states that prompts without examples tend to be less effective. Always include them when format matters.
-4. **Adjusting temperature** — Gemini 3's reasoning is calibrated for temperature 1.0. Lowering it can degrade output quality.
-5. **Vague multimodal prompts** — "Analyze this image" produces poor results. Be specific about what to look for.
+4. **Setting sampling parameters at all** — `temperature`, `top_p`, `top_k` and `candidate_count` should be *absent* from Gemini 3+ generation configs, not tuned. Carrying them over from a Gemini 2.x integration is the most common migration defect.
+5. **Using `thinking_budget` or `minimal` thinking** — `thinking_budget` is deprecated in favour of `thinking_level`, and `thinking_level: "minimal"` returns an error. Use `low` as the floor.
+6. **Prompted chain-of-thought on thinking models** — "think step by step" duplicates internal reasoning. Raise `thinking_level` instead.
+7. **Vague multimodal prompts** — "Analyze this image" produces poor results. Be specific about what to look for.
+8. **Mixing XML and Markdown structure in one prompt** — pick one delimiter style so section boundaries stay unambiguous.
 
 ---
 
