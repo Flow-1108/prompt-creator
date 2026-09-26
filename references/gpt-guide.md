@@ -2,7 +2,7 @@
 
 Reference file for the prompt-creator skill. Contains GPT-specific patterns, best practices, and structural templates based on OpenAI documentation (developers.openai.com, cookbook.openai.com).
 
-**Last verified: September 2026.** Model names and API parameters below were checked against `developers.openai.com/api/docs/models` and `developers.openai.com/api/docs/guides/latest-model` on 2026-09-12. OpenAI's model lineup moves fast — re-verify before trusting a specific model name.
+**Last verified: September 2026.** Model names and API parameters below were checked against OpenAI's model pages, the *Model guidance* page and launch coverage on 2026-09-26 (GPT-6 Sol and Luna shipped 2026-09-22). OpenAI's model lineup moves fast — re-verify before trusting a specific model name.
 
 ---
 
@@ -11,11 +11,13 @@ Reference file for the prompt-creator skill. Contains GPT-specific patterns, bes
 | Model | API ID | Reasoning effort values | Positioning |
 |---|---|---|---|
 | GPT-6 Astra | `gpt-6-astra` | `low` → `max`; **`none` not supported** | Most capable model. Computer use, browsing, software engineering, scientific and professional work, multistep processes |
-| GPT-5.6 Sol | `gpt-5.6-sol` (alias `gpt-5.6`) | `none`, `low`, `medium`, `high`, `xhigh`, `max` | Frontier model of the 5.6 family |
-| GPT-5.6 Terra | `gpt-5.6-terra` | same | Balanced model for everyday work |
-| GPT-5.6 Luna | `gpt-5.6-luna` | same | Most cost-efficient of the family |
+| GPT-6 Sol | `gpt-6-sol` | `none`, `low`, `medium` (default), `high`, `xhigh`, `max` | Complex coding, agentic workflows, demanding everyday work |
+| GPT-6 Luna | `gpt-6-luna` | same | High-volume, lower-complexity work: summarization, extraction, classification, Q&A |
+| GPT-5.6 Terra | `gpt-5.6-terra` | same | Balanced middle tier — **there is no GPT-6 Terra**; use this when Luna is too light and Sol too costly |
 
-Flagship models: 1.05M token context, 128K max output. GPT-5.6 knowledge cutoff: 30 April 2026.
+GPT-6 Sol and Luna: 1.05M token context, 128K max output. Knowledge cutoff: 20 April 2026 (Sol), 18 May 2026 (Luna — the most recent of the family). Both cost about half their GPT-5.6 equivalents and use fewer tokens per task. GPT-5.6 Sol and Luna remain available but are superseded — do not target them in new prompts.
+
+**Tool calling with GPT-6 Sol/Luna:** in Chat Completions, function calling works only with `reasoning_effort: "none"`. For reasoning *and* tools, use the Responses API (`reasoning.effort`). Mention this when generating an agent prompt meant for the API.
 
 > **Unverified:** the two official pages disagree on GPT-6 Astra's effort range — the models catalog lists `low`/`medium`/`high`/`xhigh`/`max` while the *Model guidance* page lists only `low`/`medium`/`high`. Both agree `none` is unsupported on Astra. Check the live docs before pinning an effort value for Astra.
 
@@ -25,9 +27,9 @@ Specialized models exist for cybersecurity (`gpt-5.6-cyber`), life sciences (`gp
 
 ---
 
-## GPT-6 Astra — documented behavioral shifts
+## GPT-6 family — documented behavioral shifts
 
-OpenAI documents four traits of Astra that a prompt should account for:
+OpenAI documents four traits of GPT-6 Astra that a prompt should account for. Its *Model guidance* page applies the same recommendations to GPT-6 Sol and Luna, noting they were observed on Astra and should be evaluated on your own model and workload:
 
 1. **Initiative** — it asks clarifying questions more readily than its predecessors. When the intent is already clear, instruct it to "bias towards action and carry the user's intended task to completion."
 2. **Instruction sensitivity** — it is markedly more responsive to guidance in skill files and configuration documents. Where a prompt coexists with such files, state that the user's instructions take precedence over guidelines provided in a skill.

@@ -44,7 +44,7 @@ The prompt's job is now to carry **context and intent** — audience, product, q
 | Provider | Models |
 |---|---|
 | **Anthropic** | Claude Fable 5.1 (`claude-fable-5-1`), Opus 5 (`claude-opus-5`), Sonnet 5 (`claude-sonnet-5`), Haiku 4.5 (`claude-haiku-4-5`) |
-| **OpenAI** | GPT-6 Astra (`gpt-6-astra`), GPT-5.6 Sol / Terra / Luna (`gpt-5.6-sol` / `-terra` / `-luna`) |
+| **OpenAI** | GPT-6 Astra (`gpt-6-astra`), GPT-6 Sol (`gpt-6-sol`), GPT-6 Luna (`gpt-6-luna`), GPT-5.6 Terra (`gpt-5.6-terra` — no GPT-6 Terra exists) |
 | **Google** | Gemini 3.8 / 3.7 / 3.6 / 3.5 Flash, 3.5 Flash-Lite, 3.1 Pro (preview) |
 
 `o3` is no longer in OpenAI's catalog. The meaningful distinction is no longer *which model reasons* but *at what effort level*.
@@ -142,7 +142,7 @@ Once context is sufficient, the skill produces the final prompt applying the **t
 - `reasoning_effort`: `none`/`low` for extraction and formatting, `medium` as default, `high`/`xhigh`/`max` for hard problems
 - Structured Outputs: token-level JSON constraint via `response_format`
 - Prompt caching: static content at the top, dynamic at the bottom
-- GPT-6 Astra specifics: bias it toward action when intent is clear, ask explicitly for prose (it defaults to lists), scope test thoroughness on code tasks
+- GPT-6 specifics (Astra, Sol, Luna): bias it toward action when intent is clear, ask explicitly for prose (it defaults to lists), scope test thoroughness on code tasks
 
 ---
 
@@ -227,7 +227,7 @@ Or directly in:
 
 **[`references/gpt-guide.md`](./references/gpt-guide.md)** — GPT/OpenAI guide:
 1. Model landscape and `reasoning_effort` levels
-2. GPT-6 Astra behavioral notes
+2. GPT-6 family behavioral notes
 3. CTCO framework and template
 4. 6 prompt patterns (standard, reasoning, agent, long documents, conversational, JSON)
 5. Best practices, pitfalls, XML conventions

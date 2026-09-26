@@ -33,7 +33,7 @@ Check this before naming a model in a generated prompt. Re-verify against live d
 | Provider | Current models | Depth control |
 |---|---|---|
 | **Anthropic** | Claude Fable 5.1 (`claude-fable-5-1`), Opus 5 (`claude-opus-5`), Sonnet 5 (`claude-sonnet-5`), Haiku 4.5 (`claude-haiku-4-5`) | `thinking: {type: "adaptive"}` + `output_config.effort` (`low`→`max`) |
-| **OpenAI** | GPT-6 Astra (`gpt-6-astra`), GPT-5.6 Sol / Terra / Luna (`gpt-5.6-sol` / `-terra` / `-luna`) | `reasoning_effort` (`none`→`max`; `none` unsupported on Astra) |
+| **OpenAI** | GPT-6 Astra (`gpt-6-astra`), GPT-6 Sol (`gpt-6-sol`), GPT-6 Luna (`gpt-6-luna`); no GPT-6 Terra — GPT-5.6 Terra (`gpt-5.6-terra`) stays the middle tier | `reasoning_effort` (`none`→`max`; `none` unsupported on Astra) |
 | **Google** | Gemini 3.8 / 3.7 / 3.6 / 3.5 Flash, 3.5 Flash-Lite, 3.1 Pro (preview) | `thinking_level` (`low` / `medium` / `high`; `minimal` errors) |
 
 Details, pricing tiers and per-model behavioral notes live in the three reference files.
@@ -226,11 +226,11 @@ Each carries a "Last verified" date and a model table. If that date is stale rel
 **Reasoning depth — set the dial, don't write the prose:**
 
 - Every current flagship reasons internally. The distinction is no longer *which model* but *which effort level*, so do NOT add "think step by step" — it duplicates internal work and can degrade the answer.
-- When generating API prompts, specify `reasoning_effort`: `none`/`low` for extraction and formatting, `medium` as the default for analysis and multi-step problems, `high`/`xhigh`/`max` for complex mathematics, formal proofs, multi-file code generation, and problems with many interacting constraints. `none` is not supported on GPT-6 Astra.
+- When generating API prompts, specify `reasoning_effort`: `none`/`low` for extraction and formatting, `medium` as the default for analysis and multi-step problems, `high`/`xhigh`/`max` for complex mathematics, formal proofs, multi-file code generation, and problems with many interacting constraints. `none` is not supported on GPT-6 Astra. For GPT-6 Sol/Luna agent prompts using tools via Chat Completions, only `none` works — point to the Responses API when reasoning with tools is needed.
 - Ask for a visible reasoning preamble only when the trace itself is a deliverable the reader needs — not as a quality lever.
 - Say each instruction exactly once. Leaner prompts measurably outperform padded ones on current models.
 
-**GPT-6 Astra behavioral notes:** it asks clarifying questions more readily (tell it to "bias towards action" when intent is clear), is markedly sensitive to instructions in skill and config files (state that user instructions take precedence), defaults to list-heavy formatting (ask for "clear, concise paragraphs" when you want prose), and can over-test on code tasks (specify testing should be "meaningful and necessary").
+**GPT-6 behavioral notes (Astra, and by OpenAI's guidance Sol and Luna):** it asks clarifying questions more readily (tell it to "bias towards action" when intent is clear), is markedly sensitive to instructions in skill and config files (state that user instructions take precedence), defaults to list-heavy formatting (ask for "clear, concise paragraphs" when you want prose), and can over-test on code tasks (specify testing should be "meaningful and necessary").
 
 **Negative instructions — OpenAI's rule:**
 

@@ -42,7 +42,7 @@ Le rôle du prompt est désormais de porter le **contexte et l'intention** — a
 | Fournisseur | Modèles |
 |---|---|
 | **Anthropic** | Claude Fable 5.1 (`claude-fable-5-1`), Opus 5 (`claude-opus-5`), Sonnet 5 (`claude-sonnet-5`), Haiku 4.5 (`claude-haiku-4-5`) |
-| **OpenAI** | GPT-6 Astra (`gpt-6-astra`), GPT-5.6 Sol / Terra / Luna (`gpt-5.6-sol` / `-terra` / `-luna`) |
+| **OpenAI** | GPT-6 Astra (`gpt-6-astra`), GPT-6 Sol (`gpt-6-sol`), GPT-6 Luna (`gpt-6-luna`), GPT-5.6 Terra (`gpt-5.6-terra` — pas de GPT-6 Terra) |
 | **Google** | Gemini 3.8 / 3.7 / 3.6 / 3.5 Flash, 3.5 Flash-Lite, 3.1 Pro (preview) |
 
 `o3` ne figure plus au catalogue OpenAI. La distinction pertinente n'est plus *quel modèle raisonne* mais *à quel niveau d'effort*.
@@ -141,7 +141,7 @@ Une fois le contexte suffisant, le skill produit le prompt final en appliquant l
 - `reasoning_effort` : `none`/`low` pour extraction et formatage, `medium` par défaut, `high`/`xhigh`/`max` pour les problèmes difficiles
 - Structured Outputs : contrainte JSON au niveau token via `response_format`
 - Prompt caching : statique en haut, dynamique en bas
-- Spécificités GPT-6 Astra : pousser à l'action quand l'intention est claire, demander explicitement de la prose (il formate en listes par défaut), cadrer l'ampleur des tests sur les tâches de code
+- Spécificités GPT-6 (Astra, Sol, Luna) : pousser à l'action quand l'intention est claire, demander explicitement de la prose (il formate en listes par défaut), cadrer l'ampleur des tests sur les tâches de code
 
 ---
 
@@ -226,7 +226,7 @@ Ou directement dans :
 
 **[`references/gpt-guide.md`](./references/gpt-guide.md)** — Guide GPT/OpenAI :
 1. Panorama des modèles et niveaux de `reasoning_effort`
-2. Spécificités comportementales de GPT-6 Astra
+2. Spécificités comportementales de la famille GPT-6
 3. Framework CTCO et template
 4. 6 patterns de prompts (standard, reasoning, agent, documents longs, conversationnel, JSON)
 5. Best practices, pièges à éviter, conventions XML
